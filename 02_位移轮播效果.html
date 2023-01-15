@@ -9,11 +9,15 @@
   <style>
     .banner {
       position: relative;
+
+      overflow: hidden;
     }
 
     .banner .images {
       position: relative;
       height: 550px;
+
+      transition: all 300ms;
     }
 
     .banner .images .item {
@@ -23,13 +27,13 @@
       width: 100%;
       overflow: hidden;
 
-      opacity: 0;
+      /* opacity: 0; */
       transition: opacity 1000ms ease;
     }
 
-    .banner .images .item.active {
+    /* .banner .images .item.active {
       opacity: 1;
-    }
+    } */
 
     .banner .images .item img {
       position: relative;
@@ -79,6 +83,8 @@
 
 <script src="./json/banner.data.js"></script>
 <script>
+  //动画时间常量
+var animationDuration = 1000
 var bannersCount = banners.length
   //服务器url
 var bannerServerUrl = "https://res.vmallres.com/"
@@ -100,12 +106,23 @@ for (i=0; i<banners.length; i++) {
   }
   imagesEl.append(itemEl)
 
+  //设置itemEl的样式(left)
+  itemEl.style.left = `${i*100}%`
+
   //创建image元素
   var imgEl = document.createElement("img")
   imgEl.src = `${bannerServerUrl}${banner.imgUrl}`
   itemEl.append(imgEl)
 
 }
+//追加功能(做无限轮播),把原本第一个元素追加到最后,把原本最后一个元素追加到第一个元素
+var firstItem = imagesEl.children[0].cloneNode(true)
+var lastItem = imagesEl.children[bannersCount-1].cloneNode(true)
+imagesEl.append(firstItem)
+imagesEl.prepend(lastItem)
+//追加元素的位置调整
+lastItem.style.left = '-100%'
+firstItem.style.left = `${bannersCount*100}%`
  //动态添加指示器内容
  var indicatorEl = document.querySelector(".indicator")
 
@@ -138,9 +155,7 @@ prevBtnEl.onclick = function() {
   //找到上一个
   previousIndex = currentIndex
   currentIndex--
-  if (currentIndex === -1) {
-    currentIndex = bannersCount - 1
-  }
+ 
   switchBannerItem()
 }
 nextBtnEl.onclick = nextSwicth
@@ -158,11 +173,17 @@ bannerEl.onmouseleave = startTimer
 //封装:switchBannerItem
 function switchBannerItem() {
    //让currentIndex变成active状态,让previousIndex变成普通状态
-   //切换图片的item
-   var currentItemEl = imagesEl.children[currentIndex]
-  var previousItemEl = imagesEl.children[previousIndex]
-  previousItemEl.classList.remove("active")
-  currentItemEl.classList.add("active")
+   //切换整个imagesEl的transform
+   imagesEl.style.transition = `all ${animationDuration}ms ease`
+  imagesEl.style.transform = `translateX(${-currentIndex*100}%)`
+
+  if (currentIndex === bannersCount) {
+    currentIndex = 0
+    fixBannerPosition()
+  } else if (currentIndex === -1) {
+    currentIndex = bannersCount - 1
+    fixBannerPosition()
+  }
   //切换指示器的item
   var currentIndicatorItemEl = indicatorEl.children[currentIndex]
   var previousIndicatorItemEl = indicatorEl.children[previousIndex]
@@ -175,20 +196,38 @@ function nextSwicth() {
    //找到下一个
    previousIndex = currentIndex
   currentIndex++
-  if (currentIndex === bannersCount) {
-    currentIndex = 0
-  }
+
   switchBannerItem()
 }
 
 //封装:startTimer,stopTimer
 function startTimer() {
+  if (timer) return
   timer = setInterval(nextSwicth, 3000)
 }
 function stopTimer() {
+  if (!timer) return
   clearInterval(timer)
+  timer = null
 }
  
+//封装:修正图片位移位置函数
+function fixBannerPosition() {
+  setTimeout(function() {
+      imagesEl.style.transition = "none"
+      imagesEl.style.transform = `translateX(${-currentIndex*100}%)`
+    },animationDuration)
+}
+
+//解决离开页面再回到页面滚动混乱问题
+document.onvisibilitychange = function() {
+  if (document.visibilityState === "visible") {
+    startTimer()
+  } else if (document.visibilityState === "hidden") {
+    stopTimer()
+  }
+
+}
 
 </script>
 
